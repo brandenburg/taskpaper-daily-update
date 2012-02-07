@@ -49,64 +49,58 @@ def drop_done(todos):
         dones.append(nd)
     return dones
 
-def testfile():
-    return codecs.open('test.taskpaper', 'r', 'utf8')
-
-def test():
-    td = TaskPaper.parse(testfile())
-
-
-    it = list(td['today'])[0]
-    print it.tags
-    it.add_tag('foo')
-    print it.tags
-    it.drop_tag('done')
-    it.drop_tag('foo')
-    print it.tags
-
-
-    for nd in td['today']:
-        print nd
-
-    print td[2]
-
-    print 'pre:', len(list(td.select(lambda _: True)))
-
-    for nd in td['today']:
+def archive_done(todos, archive):
+    date  = datetime.date.today()
+    today = "%04d-%02d-%02d" % (date.year, date.month, date.day)
+    for nd in todos['done']:
+        nd.add_tag('archived', today)
+        for tag in ['today', 'tomorrow', 'weekend', 'nextweek'] + DAYS:
+            nd.drop_tag(tag)
+        path = nd.path_from_root()
+        archive.add_path(path)
         nd.delete()
 
-    print len(list(td['today'])), len(list(td.select(lambda _:True)))
-
-def update(todos):
-    advance_day(todos)
-    drop_done(todos)
-
-def test2():
-    td = TaskPaper.parse(testfile())
-    update(td)
-    print unicode(td.format(lambda nd: 'today' in nd.tags))
-
-def main(args=sys.argv[1:]):
-    if len(args) == 1:
-        f = codecs.open(args[0], 'r', 'utf8')
+def load_file(fname):
+    try:
+        f = codecs.open(fname, 'r', 'utf8')
         todo = TaskPaper.parse(f)
         f.close()
+        return todo
+    except IOError as err:
+        print "Could not open '%s' (%s)." % (fname, err)
+        return None
 
-#        for nd in todo.select(lambda nd: nd.is_project()):
-#            print nd
-
-        update(todo)
-
-        f = codecs.open(args[0], 'w', 'utf8')
-        f.write(unicode(todo))
+def write_file(todos, fname):
+    try:
+        f = codecs.open(fname, 'w', 'utf8')
+        f.write(unicode(todos))
         f.close()
+        return True
+    except IOError as msg:
+        print "Could not store '%s' (%s)." % (fname, err)
+        return False
 
-#        for nd in todo:
-#            print unicode(nd)
-#        print unicode(todo)
+def update_file(fname):
+    todos = load_file(fname)
 
+    if not todos:
+        return None
 
+    archive_fname = fname.replace('.taskpaper', ' Archive.taskpaper')
+    archive = load_file(archive_fname)
+    if not archive:
+        print "Starting new archive: %s" % archive_fname
+        archive = TaskPaper()
+
+    advance_day(todos)
+    archive_done(todos, archive)
+
+    write_file(archive, archive_fname)
+    write_file(todos, fname)
+
+def main(args=sys.argv[1:]):
+    for fname in args:
+        update_file(fname)
 
 if __name__ == '__main__':
     main()
-#    test2()
