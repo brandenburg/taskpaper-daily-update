@@ -26,17 +26,26 @@ opts = [
       help='pretend today is DAY (default: infer from system date)'),
     o('-s', '--simulate', action='store_true', dest='simulate',
       help="don't write back results to file; dump to stdout instead"),
+    o('-r', '--recurring', action='store', dest='recurring',
+      help="read recurring tasks from file RECURRING"),
     ]
 
 defaults = {
-    'day'      : None,
-    'simulate' : False,
+    'day'       : None,
+    'simulate'  : False,
+    'recurring' : None,
     }
 
 options = None
 
 def today():
     return DAYS[datetime.date.today().weekday()]
+
+def merge_recurring(todos, tag):
+    if options.recurring:
+        for nd in options.recurring[tag]:
+            path = nd.path_from_root()
+            todos.add_path(path)
 
 def advance_day(todos):
     # convert a given tag to 'today'
@@ -50,7 +59,11 @@ def advance_day(todos):
 
     # everything explicitly marked by weekday name becomes @today
     day = today() if options.day is None else options.day
+    merge_recurring(todos, day)
     convert_to_today(day)
+
+    merge_recurring(todos, 'daily')
+    convert_to_today('daily')
 
     # on certain days also pull in additional items
     # The weekend starts on Saturday.
@@ -59,6 +72,12 @@ def advance_day(todos):
     # The new (work) week starts on Monday.
     if day == 'monday':
         convert_to_today('nextweek')
+        merge_recurring(todos, 'weekly')
+        convert_to_today('weekly')
+
+    if datetime.date.today().day == 1:
+        merge_recurring(todos, 'monthly')
+        convert_to_today('monthly')
 
 def drop_done(todos):
     dones = []
@@ -120,6 +139,8 @@ def update_file(fname):
         print unicode(todos)
 
 def main(args=sys.argv[1:]):
+    if options.recurring:
+        options.recurring = load_file(options.recurring)
     for fname in args:
         update_file(fname)
 
