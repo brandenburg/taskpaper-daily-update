@@ -7,6 +7,9 @@ import datetime
 # from http://github.com/brandenburg/python-taskpaper
 from taskpaper.taskpaper import TaskPaper
 
+import optparse
+o = optparse.make_option
+
 DAYS = [
     'monday',
     'tuesday',
@@ -16,6 +19,18 @@ DAYS = [
     'saturday',
     'sunday'
 ]
+
+opts = [
+    o('-d', '--day', action='store', dest='day',
+      type='choice', choices=DAYS,
+      help='pretend today is DAY (default: infer from system date)')
+    ]
+
+defaults = {
+    'day' : None,
+    }
+
+options = None
 
 def today():
     return DAYS[datetime.date.today().weekday()]
@@ -31,7 +46,7 @@ def advance_day(todos):
     convert_to_today('tomorrow')
 
     # everything explicitly marked by weekday name becomes @today
-    day = today()
+    day = today() if options.day is None else options.day
     convert_to_today(day)
 
     # on certain days also pull in additional items
@@ -103,4 +118,7 @@ def main(args=sys.argv[1:]):
         update_file(fname)
 
 if __name__ == '__main__':
-    main()
+    parser = optparse.OptionParser(option_list=opts)
+    parser.set_defaults(**defaults)
+    (options, files) = parser.parse_args()
+    main(files)
