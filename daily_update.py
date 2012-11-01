@@ -23,11 +23,14 @@ DAYS = [
 opts = [
     o('-d', '--day', action='store', dest='day',
       type='choice', choices=DAYS,
-      help='pretend today is DAY (default: infer from system date)')
+      help='pretend today is DAY (default: infer from system date)'),
+    o('-s', '--simulate', action='store_true', dest='simulate',
+      help="don't write back results to file; dump to stdout instead"),
     ]
 
 defaults = {
-    'day' : None,
+    'day'      : None,
+    'simulate' : False,
     }
 
 options = None
@@ -110,8 +113,11 @@ def update_file(fname):
     advance_day(todos)
     archive_done(todos, archive)
 
-    write_file(archive, archive_fname)
-    write_file(todos, fname)
+    if not options.simulate:
+        write_file(archive, archive_fname)
+        write_file(todos, fname)
+    else:
+        print unicode(todos)
 
 def main(args=sys.argv[1:]):
     for fname in args:
