@@ -90,11 +90,22 @@ def archive_done(todos, archive):
     date  = datetime.date.today()
     today = "%04d-%02d-%02d" % (date.year, date.month, date.day)
     for nd in todos['done']:
+        # mark when this node was archived
         nd.add_tag('archived', today)
+        # remove "stale" tags
         for tag in ['today', 'tomorrow', 'weekend', 'nextweek'] + DAYS:
             nd.drop_tag(tag)
+
+        # add to archive
         path = nd.path_from_root()
-        archive.add_path(path)
+        new  = archive.add_path(path)
+
+        # check if we added this node before (=> recurrent tasks)
+        if new.tags['archived'] != today:
+            # this is a repeated task -> add a nother 'archived' marker
+            new.tags['archived'] += ' ' + today
+
+        # finally remove the completed node from the todo list
         nd.delete()
 
 def load_file(fname):
