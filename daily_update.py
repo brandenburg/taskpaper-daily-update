@@ -86,6 +86,11 @@ def drop_done(todos):
         dones.append(nd)
     return dones
 
+def drop_should(todos):
+    "deferred items: drop @should from @today items to raise awareness"
+    for nd in todos['today']:
+        nd.drop_tag('should')
+
 def archive_done(todos, archive):
     date  = datetime.date.today()
     today = "%04d-%02d-%02d" % (date.year, date.month, date.day)
@@ -141,6 +146,7 @@ def update_file(fname):
         print "Starting new archive: %s" % archive_fname
         archive = TaskPaper()
 
+    drop_should(todos)
     advance_day(todos)
     archive_done(todos, archive)
 
@@ -148,6 +154,8 @@ def update_file(fname):
         write_file(archive, archive_fname)
         write_file(todos, fname)
     else:
+        write_file(archive, '/tmp/todo-archive')
+        write_file(todos, '/tmp/todos-dump')
         print unicode(todos)
         print '*' * 80
         print unicode(archive)
