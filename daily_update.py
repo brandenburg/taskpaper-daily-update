@@ -56,6 +56,8 @@ def advance_day(todos):
 
     # everything marked as @tomorrow becomes @today
     convert_to_today('tomorrow')
+    # tolerate frequent misspelling
+    convert_to_today('tomorow')
 
     # everything explicitly marked by weekday name becomes @today
     day = today() if options.day is None else options.day
