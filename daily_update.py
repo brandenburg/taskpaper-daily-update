@@ -28,12 +28,16 @@ opts = [
       help="don't write back results to file; dump to stdout instead"),
     o('-r', '--recurring', action='store', dest='recurring',
       help="read recurring tasks from file RECURRING"),
+    o('-t', '--tomorrow', action='store_true', dest='tomorrow',
+      help="when processing items tagged @monday, @tuesday, etc., tag " +
+           "events on the next day with '@tomorrow'"),
     ]
 
 defaults = {
     'day'       : None,
     'simulate'  : False,
     'recurring' : None,
+    'tomorrow'  : False,
     }
 
 options = None
@@ -49,10 +53,13 @@ def merge_recurring(todos, tag):
 
 def advance_day(todos):
     # convert a given tag to 'today'
-    def convert_to_today(tag):
+    def convert_to(tag, what):
         for nd in todos[tag]:
             nd.drop_tag(tag)
-            nd.add_tag('today')
+            nd.add_tag(what)
+
+    convert_to_today    = lambda tag: convert_to(tag, 'today')
+    convert_to_tomorrow = lambda tag: convert_to(tag, 'tomorrow')
 
     # everything marked as @tomorrow becomes @today
     convert_to_today('tomorrow')
@@ -62,6 +69,14 @@ def advance_day(todos):
     # everything explicitly marked by weekday name becomes @today
     day = today() if options.day is None else options.day
     merge_recurring(todos, day)
+
+    if options.tomorrow:
+        # also merge tasks for tomorrow
+        day_idx = DAYS.index(day)
+        next_day = DAYS[(day_idx + 1) % len(DAYS)]
+        merge_recurring(todos, next_day)
+        convert_to_tomorrow(next_day)
+
     convert_to_today(day)
 
     merge_recurring(todos, 'daily')
