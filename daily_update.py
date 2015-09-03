@@ -80,6 +80,7 @@ def advance_day(todos):
     if datetime.date.today().day == 1 and not options.day:
         merge_recurring(todos, 'monthly')
         convert_to_today('monthly')
+        convert_to_today('nextmonth')
 
 def drop_done(todos):
     dones = []
