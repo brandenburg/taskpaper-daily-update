@@ -77,7 +77,7 @@ def advance_day(todos):
         merge_recurring(todos, 'weekly')
         convert_to_today('weekly')
 
-    if datetime.date.today().day == 1:
+    if datetime.date.today().day == 1 and not options.day:
         merge_recurring(todos, 'monthly')
         convert_to_today('monthly')
 
