@@ -69,6 +69,23 @@ def merge_recurring(todos, tag):
             path = nd.path_from_root()
             todos.add_path(path)
 
+def process_countdown(todos, tag):
+    for nd in todos[tag]:
+        try:
+            val = int(nd.tags[tag])
+            if val is None:
+                continue
+            if val > 2:
+                nd.tags[tag] = str(val - 1)
+            elif val == 2:
+                nd.drop_tag(tag)
+                nd.add_tag('tomorrow')
+            elif val <= 1:
+                nd.drop_tag(tag)
+                nd.add_tag('today')
+        except ValueError:
+            pass # silently ignore strings we can't parse
+
 def advance_day(todos):
     # convert a given tag to 'today'
     def convert_to(tag, what):
@@ -87,6 +104,10 @@ def advance_day(todos):
     # everything explicitly marked by weekday name becomes @today
     day = today() if options.day is None else options.day
     merge_recurring(todos, day)
+
+    # process countdowns
+    process_countdown(todos, 'indays')
+    process_countdown(todos, 'snooze')
 
     if options.tomorrow:
         # also merge tasks for tomorrow
