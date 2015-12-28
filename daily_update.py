@@ -20,6 +20,21 @@ DAYS = [
     'sunday'
 ]
 
+MONTHS = [
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december'
+]
+
 opts = [
     o('-d', '--day', action='store', dest='day',
       type='choice', choices=DAYS,
@@ -44,6 +59,9 @@ options = None
 
 def today():
     return DAYS[datetime.date.today().weekday()]
+
+def this_month():
+    return MONTHS[datetime.date.today().month - 1]
 
 def merge_recurring(todos, tag):
     if options.recurring:
@@ -94,8 +112,10 @@ def advance_day(todos):
 
     if datetime.date.today().day == 1 and not options.day:
         merge_recurring(todos, 'monthly')
+        merge_recurring(todos, this_month())
         convert_to_today('monthly')
         convert_to_today('nextmonth')
+        convert_to_today(this_month())
 
 def drop_done(todos):
     dones = []
