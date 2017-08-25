@@ -206,8 +206,8 @@ def update_file(fname):
         archive = TaskPaper()
 
     drop_should(todos)
-    advance_day(todos)
     archive_done(todos, archive)
+    advance_day(todos)
 
     if not options.simulate:
         write_file(archive, archive_fname)
