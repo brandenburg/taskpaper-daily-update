@@ -90,7 +90,7 @@ def process_countdown(todos, tag):
             pass # silently ignore strings we can't parse
 
 def advance_day(todos):
-    # convert a given tag to 'today'
+    # convert a given tag to another given tag (in all nodes)
     def convert_to(tag, what):
         for nd in todos[tag]:
             nd.drop_tag(tag)
@@ -120,6 +120,9 @@ def advance_day(todos):
         convert_to_tomorrow(next_day)
 
     convert_to_today(day)
+    # convert next-week-$DAY tags to just $DAY
+    convert_to('n' + day, day)
+    convert_to('next' + day, day)
 
     merge_recurring(todos, 'daily')
     convert_to_today('daily')
