@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # consider i18n
 
 import sys
@@ -163,12 +164,12 @@ def archive_done(todos, archive):
         new  = archive.add_path(path)
 
         # check if we added this node before (=> recurrent tasks)
-        if u'archived' in new.tags:
-            if new.tags[u'archived'] != today:
+        if 'archived' in new.tags:
+            if new.tags['archived'] != today:
                 # this is a repeated task -> add another 'archived' marker
-                new.tags[u'archived'] += ' ' + today
+                new.tags['archived'] += ' ' + today
         else:
-            new.add_tag(u'archived', today)
+            new.add_tag('archived', today)
 
         # finally remove the completed node from the todo list
         nd.delete()
@@ -180,17 +181,17 @@ def load_file(fname):
         f.close()
         return todo
     except IOError as err:
-        print "Could not open '%s' (%s)." % (fname, err)
+        print("Could not open '%s' (%s)." % (fname, err))
         return None
 
 def write_file(todos, fname):
     try:
         f = codecs.open(fname, 'w', 'utf8')
-        f.write(unicode(todos))
+        f.write(str(todos))
         f.close()
         return True
     except IOError as msg:
-        print "Could not store '%s' (%s)." % (fname, err)
+        print("Could not store '%s' (%s)." % (fname, err))
         return False
 
 def update_file(fname):
@@ -202,7 +203,7 @@ def update_file(fname):
     archive_fname = fname.replace('.taskpaper', ' Archive.taskpaper')
     archive = load_file(archive_fname)
     if not archive:
-        print "Starting new archive: %s" % archive_fname
+        print("Starting new archive: %s" % archive_fname)
         archive = TaskPaper()
 
     drop_should(todos)
@@ -215,9 +216,9 @@ def update_file(fname):
     else:
         write_file(archive, '/tmp/todo-archive')
         write_file(todos, '/tmp/todos-dump')
-        print unicode(todos)
-        print '*' * 80
-        print unicode(archive)
+        print(str(todos))
+        print('*' * 80)
+        print(str(archive))
 
 def main(args=sys.argv[1:]):
     if options.recurring:
