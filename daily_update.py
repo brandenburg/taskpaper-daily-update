@@ -73,9 +73,11 @@ def merge_recurring(todos, tag):
 def process_countdown(todos, tag):
     for nd in todos[tag]:
         try:
-            val = int(nd.tags[tag])
+            val = nd.tags[tag]
             if val is None:
-                continue
+                val = 0
+            else:
+                val = int(val)
             if val > 2:
                 nd.tags[tag] = str(val - 1)
             elif val == 2:
