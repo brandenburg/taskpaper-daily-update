@@ -119,11 +119,6 @@ def advance_day(todos):
         merge_recurring(todos, next_day)
         convert_to_tomorrow(next_day)
 
-    convert_to_today(day)
-    # convert next-week-$DAY tags to just $DAY
-    convert_to('n' + day, day)
-    convert_to('next' + day, day)
-
     merge_recurring(todos, 'daily')
     convert_to_today('daily')
 
@@ -133,7 +128,13 @@ def advance_day(todos):
         convert_to_today('weekend')
     # The new (work) week starts on Monday.
     if day == 'monday':
-        convert_to_today('nextweek')
+        for nd in todos['nextweek']:
+            arg = nd.tags['nextweek']
+            nd.drop_tag('nextweek')
+            if arg in DAYS:
+                nd.add_tag(arg)
+            else:
+                nd.add_tag('today')
         merge_recurring(todos, 'weekly')
         convert_to_today('weekly')
 
@@ -143,6 +144,12 @@ def advance_day(todos):
         convert_to_today('monthly')
         convert_to_today('nextmonth')
         convert_to_today(this_month())
+
+    convert_to_today(day)
+    # convert next-week-$DAY tags to just $DAY
+    convert_to('n' + day, day)
+    convert_to('next' + day, day)
+
 
 def drop_done(todos):
     dones = []
