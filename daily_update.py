@@ -4,6 +4,7 @@
 import sys
 import codecs
 import datetime
+import os
 
 # from http://github.com/brandenburg/python-taskpaper
 from taskpaper.taskpaper import TaskPaper
@@ -47,22 +48,43 @@ opts = [
     o('-t', '--tomorrow', action='store_true', dest='tomorrow',
       help="when processing items tagged @monday, @tuesday, etc., tag " +
            "events on the next day with '@tomorrow'"),
-    ]
+    o('-c', '--catch-up', action='store_true',
+      help='infer day of last update from archive and run update for all skipped days'),
+]
 
 defaults = {
     'day'       : None,
     'simulate'  : False,
     'recurring' : None,
     'tomorrow'  : False,
+    'catch_up'  : False,
+    'date'      : None,
     }
 
 options = None
 
-def today():
-    return DAYS[datetime.date.today().weekday()]
+ONE_DAY = datetime.timedelta(days=1)
+
+def date():
+    return datetime.date.today() if options.date is None else options.date
+
+def infer_date():
+    d = datetime.date.today()
+    while options.day and DAYS[d.weekday()] != options.day:
+        d -= ONE_DAY
+    return d
+
+def day_of_week():
+    return DAYS[date().weekday()]
 
 def this_month():
-    return MONTHS[datetime.date.today().month - 1]
+    return MONTHS[date().month - 1]
+
+def dates_since(d, until=datetime.date.today()):
+    d += ONE_DAY
+    while d <= until:
+        yield d
+        d += ONE_DAY
 
 def merge_recurring(todos, tag):
     if options.recurring:
@@ -105,7 +127,7 @@ def advance_day(todos):
     convert_to_today('tomorow')
 
     # everything explicitly marked by weekday name becomes @today
-    day = today() if options.day is None else options.day
+    day = day_of_week()
     merge_recurring(todos, day)
 
     # process countdowns
@@ -138,7 +160,7 @@ def advance_day(todos):
         merge_recurring(todos, 'weekly')
         convert_to_today('weekly')
 
-    if datetime.date.today().day == 1 and not options.day:
+    if date().day == 1:
         merge_recurring(todos, 'monthly')
         merge_recurring(todos, this_month())
         convert_to_today('monthly')
@@ -164,8 +186,7 @@ def drop_should(todos):
         nd.drop_tag('should')
 
 def archive_done(todos, archive):
-    date  = datetime.date.today()
-    today = "%04d-%02d-%02d" % (date.year, date.month, date.day)
+    today = "%04d-%02d-%02d" % (date().year, date().month, date().day)
     for nd in todos['done']:
         # remove "stale" tags
         for tag in ['today', 'tomorrow', 'weekend', 'nextweek'] + DAYS:
@@ -196,6 +217,13 @@ def load_file(fname):
         print("Could not open '%s' (%s)." % (fname, err))
         return None
 
+def last_modification_date(fname):
+    try:
+        return datetime.date.fromtimestamp(os.path.getmtime(fname))
+    except IOError as err:
+        print("Could not get last modification time of '%s' (%s)." % (fname, err))
+        return None
+
 def write_file(todos, fname):
     try:
         f = codecs.open(fname, 'w', 'utf8')
@@ -206,6 +234,11 @@ def write_file(todos, fname):
         print("Could not store '%s' (%s)." % (fname, err))
         return False
 
+def update(todos, archive):
+    drop_should(todos)
+    archive_done(todos, archive)
+    advance_day(todos)
+
 def update_file(fname):
     todos = load_file(fname)
 
@@ -213,14 +246,24 @@ def update_file(fname):
         return None
 
     archive_fname = fname.replace('.taskpaper', ' Archive.taskpaper')
+
     archive = load_file(archive_fname)
     if not archive:
         print("Starting new archive: %s" % archive_fname)
         archive = TaskPaper()
 
-    drop_should(todos)
-    archive_done(todos, archive)
-    advance_day(todos)
+    if options.catch_up:
+        last_update = last_modification_date(archive_fname)
+        if not last_update:
+            return None
+        for skipped_day in dates_since(last_update):
+            # carry out updates that we missed
+            options.date = skipped_day
+            update(todos, archive)
+    else:
+        # regular one-shot update
+        options.date = infer_date()
+        update(todos, archive)
 
     if not options.simulate:
         write_file(archive, archive_fname)
