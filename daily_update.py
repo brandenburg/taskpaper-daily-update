@@ -9,6 +9,9 @@ import os
 # from http://github.com/brandenburg/python-taskpaper
 from taskpaper.taskpaper import TaskPaper
 
+DATE_FORMAT = "%d-%m-%Y"
+DATE_TAG = "last_updated"
+
 import optparse
 o = optparse.make_option
 
@@ -185,6 +188,12 @@ def drop_should(todos):
     for nd in todos['today']:
         nd.drop_tag('should')
 
+def update_date_tag(todos):
+    # first, remove any old tags
+    for nd in todos[DATE_TAG]:
+        nd.drop_tag(DATE_TAG)
+    todos[0].add_tag(DATE_TAG, datetime.datetime.now().date().strftime(DATE_FORMAT))
+
 def archive_done(todos, archive):
     today = "%04d-%02d-%02d" % (date().year, date().month, date().day)
     for nd in todos['done']:
@@ -217,8 +226,14 @@ def load_file(fname):
         print("Could not open '%s' (%s)." % (fname, err))
         return None
 
-def last_modification_date(fname):
+def last_modification_date(todos, fname):
     try:
+        for nd in todos[DATE_TAG]:
+            try:
+                return datetime.datetime.strptime(nd.tags[DATE_TAG], DATE_FORMAT).date()
+            except ValueError:
+                continue
+        # if that didn't work, try to get the last modification time from the FS
         return datetime.date.fromtimestamp(os.path.getmtime(fname))
     except IOError as err:
         print("Could not get last modification time of '%s' (%s)." % (fname, err))
@@ -253,7 +268,7 @@ def update_file(fname):
         archive = TaskPaper()
 
     if options.catch_up:
-        last_update = last_modification_date(archive_fname)
+        last_update = last_modification_date(archive, archive_fname)
         if not last_update:
             return None
         for skipped_day in dates_since(last_update):
@@ -264,6 +279,9 @@ def update_file(fname):
         # regular one-shot update
         options.date = infer_date()
         update(todos, archive)
+
+    # date-tag archive for future catchup-mode invocations
+    update_date_tag(archive)
 
     if not options.simulate:
         write_file(archive, archive_fname)
